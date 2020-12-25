@@ -1,14 +1,12 @@
 package net.mejf.jfdedup;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Map;
 import lombok.Getter;
 import lombok.ToString;
@@ -25,6 +23,9 @@ public class Entry {
 	private final long fileSize;
 	private final long inode;
 	private final long device;
+
+	@ToString.Exclude
+	private final DeviceInode deviceInode;
 
 	@ToString.Exclude
 	private final EntrySet entrySet;
@@ -50,13 +51,21 @@ public class Entry {
 		this.fileSize = (long) attributes.get("size");
 		this.inode = (long) attributes.get("ino");
 		this.device = (long) attributes.get("dev");
+		this.deviceInode = new DeviceInode(getDevice(), getInode());
 		this.prio = prio;
 		this.entrySet = entrySet;
 		debug(this.toString());
 	}
 
 	public static void construct(File file, int prio, EntrySet entrySet) {
-		if (file.isFile()) {
+		if (!file.canRead()) {
+			Main.warn("File/dir '%s' not readable. Skipping.", file.getPath());
+
+		} else if (Files.isSymbolicLink(file.toPath())) {
+			// TODO: Handle symbolic links
+			Main.warn("File/dir '%s' is a symbolic link. Skipping.", file.getPath());
+
+		} else if (file.isFile()) {
 			entrySet.add(new Entry(file, prio, entrySet));
 
 		} else if (file.isDirectory()) {
@@ -72,10 +81,6 @@ public class Entry {
 			// Just ignore other stuff...
 
 		}
-	}
-
-	public DeviceInode getDeviceInode() {
-		return new DeviceInode(getDevice(), getInode());
 	}
 
 	public void updateStartOfFile() {

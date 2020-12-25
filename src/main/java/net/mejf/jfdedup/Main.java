@@ -148,4 +148,8 @@ public class Main {
 			System.out.printf("%d of %d (%.2f%%) done\r", done, max, done * 100.0 / max);
 		}
 	}
+
+	public static void warn(String format, Object... args) {
+		System.out.printf("Warning: " + format + "\n", args);
+	}
 }
