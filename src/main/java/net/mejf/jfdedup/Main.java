@@ -17,10 +17,12 @@ public class Main {
 	static {
 		options = new Options();
 
+		options.addOption("s", "follow-symlinks", false, "Follow symlinks (not implemented yet)");
 		options.addOption("d", "debug", false, "Print debug info");
 		options.addOption("h", "help", false, "Print help");
 		options.addOption("L", "make-hardlinks", true, "Whether to replace dups with hardlinks");
 		options.addOption("D", "delete-dups", true, "Whether to delete dups");
+		options.addOption("R", "all-recursive", false, "Search all directories recursively");
 	}
 
 	public static void main(String[] args) {
@@ -36,6 +38,16 @@ public class Main {
 	private static void doRun(String[] args) throws Exception {
 		CommandLineParser parser = new DefaultParser();
 		CommandLine cmd = parser.parse(options, args);
+
+		if (cmd.hasOption('s')) {
+			err("Following symlinks is not implemented yet.");
+			return;
+		}
+
+		if (cmd.hasOption('L')) {
+			err("Making hardlinks is not implemented yet.");
+			return;
+		}
 
 		if (cmd.hasOption('h')) {
 			help();
@@ -54,9 +66,7 @@ public class Main {
 	}
 
 	private static void run(CommandLine cmd) {
-		List<File> fileList = parseArgumentList(cmd);
-
-		EntrySet entryList = scanForFiles(fileList);
+		EntrySet entryList = scanForFiles(cmd);
 
 		log("Sorting files");
 		entryList.sortLargestFirst();
@@ -71,6 +81,8 @@ public class Main {
 
 		eliminate("files with unique hash", entryList, () -> Eliminations.eliminateWithUniqueHash(entryList));
 
+		eliminate("on content and size", entryList, () -> Eliminations.eliminateOnContentAndSize(entryList));
+
 		// TODO: Eliminate on all entry-data available
 	}
 
@@ -82,39 +94,28 @@ public class Main {
 		log("Eliminated %d files, %d left", (sizeBefore - sizeAfter), sizeAfter);
 	}
 
-	private static List<File> parseArgumentList(CommandLine cmd) {
-		log("Parsing argument list");
-		List<File> fileList = getFileList(cmd);
-		log("Found %d arguments", fileList.size());
-		return fileList;
-	}
-
-	private static EntrySet scanForFiles(List<File> fileList) {
+	private static EntrySet scanForFiles(CommandLine cmd) {
 		log("Scanning for files");
 		int prio = 0;
 		EntrySet entryList = new EntrySet();
-		for (File file : fileList) {
-			Entry.construct(file, prio++, entryList);
+		for (String argument : cmd.getArgList()) {
+			File file = new File(argument.startsWith("r:") ? argument.substring(2) : argument);
+			boolean recursive = argument.startsWith("r:") || cmd.hasOption('R');
+
+			if (!file.exists()) {
+				throw new RuntimeException(file.getPath() + " does not exist");
+
+			} else if (!file.isFile() && !file.isDirectory()) {
+				throw new RuntimeException(file.getPath() + " is not a file or directory");
+
+			} else if (!file.canRead()) {
+				throw new RuntimeException(file.getPath() + " is not readable");
+			}
+
+			Entry.construct(file, recursive, prio++, entryList);
 		}
 		log("Found %d files", entryList.size());
 		return entryList;
-	}
-
-	private static List<File> getFileList(CommandLine cmd) {
-		return cmd.getArgList().stream()
-				.map(s -> new File(s))
-				.peek(file -> {
-					if (!file.exists()) {
-						throw new RuntimeException(file.getPath() + " does not exist");
-
-					} else if (!file.isFile() && !file.isDirectory()) {
-						throw new RuntimeException(file.getPath() + " is not a file or directory");
-
-					} else if (!file.canRead()) {
-						throw new RuntimeException(file.getPath() + " is not readable");
-					}
-				})
-				.collect(Collectors.toList());
 	}
 
 	private static void help() {
@@ -136,14 +137,10 @@ public class Main {
 		System.err.printf(format + "\n", args);
 	}
 
-	public static void progress(String format, Object... args) {
-		System.out.printf(format + "\r", args);
-	}
-
 	static long lastProgress = 0;
 	public static void progress(long done, long max) {
 		long now = System.currentTimeMillis();
-		if (now - lastProgress > 250) {
+		if (now - lastProgress > 100) {
 			lastProgress = now;
 			System.out.printf("%d of %d (%.2f%%) done\r", done, max, done * 100.0 / max);
 		}

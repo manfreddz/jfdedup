@@ -40,6 +40,8 @@ public class Entry {
 
 	private ByteArray contentHash;
 
+	private ContentAndSize contentAndSize;
+
 	public Entry(File file, int prio, EntrySet entrySet) {
 		this.file = file.getAbsoluteFile();
 		final Map<String, Object> attributes;
@@ -57,13 +59,13 @@ public class Entry {
 		debug(this.toString());
 	}
 
-	public static void construct(File file, int prio, EntrySet entrySet) {
+	public static void construct(File file, boolean recursive, int prio, EntrySet entrySet) {
 		if (!file.canRead()) {
 			Main.warn("File/dir '%s' not readable. Skipping.", file.getPath());
 
 		} else if (Files.isSymbolicLink(file.toPath())) {
 			// TODO: Handle symbolic links
-			Main.warn("File/dir '%s' is a symbolic link. Skipping.", file.getPath());
+			Main.debug("File/dir '%s' is a symbolic link. Skipping.", file.getPath());
 
 		} else if (file.isFile()) {
 			entrySet.add(new Entry(file, prio, entrySet));
@@ -72,7 +74,11 @@ public class Entry {
 			try {
 				Files.list(file.toPath())
 						.map(Path::toFile)
-						.forEach(path -> construct(path, prio, entrySet));
+						.forEach(fileInDirectory -> {
+							if (!fileInDirectory.isDirectory() || recursive) {
+								construct(fileInDirectory, recursive, prio, entrySet);
+							}
+						});
 			} catch (IOException e) {
 				throw new RuntimeException("Exception while getting directory content of " + file.getPath(), e);
 			}
@@ -138,7 +144,7 @@ public class Entry {
 	}
 
 	public void updateContentHash() {
-		final Map<DeviceInode,ByteArray> cache = entrySet.getContentHashCache();
+		final Map<DeviceInode, ByteArray> cache = entrySet.getContentHashCache();
 		if (cache.containsKey(getDeviceInode())) {
 			this.contentHash = cache.get(getDeviceInode());
 
@@ -158,5 +164,9 @@ public class Entry {
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to get hash of file " + file.getPath(), e);
 		}
+	}
+
+	public void makeContentAndSize() {
+		this.contentAndSize = new ContentAndSize(startOfFile, endOfFile, contentHash, fileSize);
 	}
 }

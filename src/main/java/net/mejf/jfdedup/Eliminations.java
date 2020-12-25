@@ -1,6 +1,5 @@
 package net.mejf.jfdedup;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -71,5 +70,9 @@ public class Eliminations {
 		}
 
 		eliminate(entrySet, entry -> inodeMap.get(basedOn.apply(entry)).size() == 1);
+	}
+
+	public static void eliminateOnContentAndSize(EntrySet entryList) {
+		eliminateUniqueInodesBasedOn(entryList, Entry::makeContentAndSize, Entry::getContentAndSize);
 	}
 }
