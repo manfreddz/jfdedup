@@ -1,8 +1,6 @@
 package net.mejf.jfdedup;
 
 import java.io.File;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -99,8 +97,9 @@ public class Main {
 		int prio = 0;
 		EntrySet entryList = new EntrySet();
 		for (String argument : cmd.getArgList()) {
-			File file = new File(argument.startsWith("r:") ? argument.substring(2) : argument);
-			boolean recursive = argument.startsWith("r:") || cmd.hasOption('R');
+			boolean argumentIsRecursive = argument.startsWith("r:");
+			File file = new File(argumentIsRecursive ? argument.substring(2) : argument);
+			boolean recursive = argumentIsRecursive || cmd.hasOption('R');
 
 			if (!file.exists()) {
 				throw new RuntimeException(file.getPath() + " does not exist");

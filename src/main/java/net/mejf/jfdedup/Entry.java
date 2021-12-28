@@ -85,6 +85,7 @@ public class Entry {
 
 		} else {
 			// Just ignore other stuff...
+			Main.warn("Ignoring '%s', not sure what it is...", file.getPath());
 
 		}
 	}
