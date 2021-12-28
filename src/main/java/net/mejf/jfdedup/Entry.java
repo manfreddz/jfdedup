@@ -158,8 +158,8 @@ public class Entry {
 	private ByteArray readContentHash() {
 		try (InputStream is = Files.newInputStream(file.toPath())) {
 			byte[] array;
-			array = DigestUtils.md5(is);
-//			array = DigestUtils.sha3_512(is);
+//			array = DigestUtils.md5(is);
+			array = DigestUtils.sha3_512(is);
 			return new ByteArray(array);
 
 		} catch (IOException e) {

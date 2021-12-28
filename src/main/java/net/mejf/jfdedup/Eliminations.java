@@ -32,14 +32,10 @@ public class Eliminations {
 		int done = 0;
 		for (Entry entry : entrySet) {
 			Main.progress(done++, entrySet.size());
-			Set<DeviceInode> deviceInodeSet = sizeInodeMapList.get(entry.getFileSize());
 
-			if (deviceInodeSet == null) {
-				deviceInodeSet = new HashSet<>();
-				sizeInodeMapList.put(entry.getFileSize(), deviceInodeSet);
-			}
-
-			deviceInodeSet.add(entry.getDeviceInode());
+			sizeInodeMapList
+					.computeIfAbsent(entry.getFileSize(), k -> new HashSet<>())
+					.add(entry.getDeviceInode());
 		}
 
 		eliminate(entrySet, entry -> sizeInodeMapList.get(entry.getFileSize()).size() == 1);

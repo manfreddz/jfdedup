@@ -51,6 +51,6 @@ public class EntrySet implements Iterable<Entry> {
 	}
 
 	public void sortLargestFirst() {
-		Collections.sort(entryList, (o1, o2) -> -Long.compare(o1.getFileSize(), o2.getFileSize()));
+		entryList.sort((o1, o2) -> -Long.compare(o1.getFileSize(), o2.getFileSize()));
 	}
 }
